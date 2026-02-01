@@ -316,11 +316,12 @@
     </div>
 
     <div class="music-control" id="musicBtn">
-        <span id="musicIcon">🎵</span>
+        <span id="musicIcon">🔇</span>
     </div>
 
-    <audio id="bgMusic" loop>
-        <source src="paresh-pahuja-dooron-dooron-live-from-the-voice-notes-concert_k8fq1oyW.mp3" type="audio/mpeg">
+    <!-- CHANGED: Added autoplay and muted attributes, and renamed file -->
+    <audio id="bgMusic" loop autoplay muted>
+        <source src="dooron.mp3" type="audio/mpeg">
     </audio>
 
     <script>
@@ -444,14 +445,6 @@
                 const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-happy-crowd-laugh-464.mp3');
                 audio.volume = 0.5;
                 audio.play();
-                
-                // Start background music if not already playing
-                if (!isMusicPlaying) {
-                    bgMusic.volume = 0.3;
-                    bgMusic.play();
-                    isMusicPlaying = true;
-                    musicIcon.textContent = "🎶";
-                }
             } catch (e) {
                 console.log("Audio error:", e);
             }
@@ -475,17 +468,69 @@
             }, 500);
         });
         
-        // Music control
+        // CHANGED: Auto-play music on page load with a workaround
+        window.addEventListener('load', function() {
+            // Try to play music automatically
+            setTimeout(function() {
+                bgMusic.muted = false;
+                bgMusic.volume = 0.3;
+                
+                // Create a promise to play the audio
+                const playPromise = bgMusic.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        // Audio played successfully
+                        isMusicPlaying = true;
+                        musicIcon.textContent = "🎶";
+                        console.log("Music started playing automatically");
+                    }).catch(error => {
+                        // Auto-play was prevented
+                        console.log("Autoplay prevented. User interaction required.");
+                        musicIcon.textContent = "▶️";
+                        musicIcon.title = "Click to start music";
+                        
+                        // Show a subtle hint
+                        setTimeout(() => {
+                            const hint = document.createElement('div');
+                            hint.innerHTML = "🎵 Click the music button to start the song!";
+                            hint.style.position = 'fixed';
+                            hint.style.bottom = '80px';
+                            hint.style.right = '20px';
+                            hint.style.background = 'rgba(255,255,255,0.9)';
+                            hint.style.padding = '8px 12px';
+                            hint.style.borderRadius = '10px';
+                            hint.style.boxShadow = '0 3px 10px rgba(0,0,0,0.2)';
+                            hint.style.zIndex = '100';
+                            hint.style.fontSize = '14px';
+                            hint.style.color = '#ff4d79';
+                            document.body.appendChild(hint);
+                            
+                            setTimeout(() => {
+                                hint.remove();
+                            }, 5000);
+                        }, 2000);
+                    });
+                }
+            }, 1000); // 1 second delay to increase chances of autoplay
+        });
+        
+        // Music control button
         musicBtn.addEventListener('click', () => {
             if (isMusicPlaying) {
                 bgMusic.pause();
                 musicIcon.textContent = "🔇";
+                isMusicPlaying = false;
             } else {
                 bgMusic.volume = 0.3;
-                bgMusic.play();
-                musicIcon.textContent = "🎶";
+                bgMusic.play().then(() => {
+                    isMusicPlaying = true;
+                    musicIcon.textContent = "🎶";
+                }).catch(error => {
+                    console.log("Failed to play music:", error);
+                    alert("Please click anywhere on the page first, then click the music button.");
+                });
             }
-            isMusicPlaying = !isMusicPlaying;
         });
         
         // Instructions tooltip
